@@ -1,0 +1,8 @@
+{
+    "python.pythonPath": "/usr/local/bin/python3",
+    "python.autoComplete.extraPaths": [
+        "/usr/local/bin/python3",
+        "/Users/shaynestewart/.local/share/virtualenvs/FAAProj-MRv3BNMV"
+    ],
+    "python.venvPath": "/Users/shaynestewart/.local/share/virtualenvs/FAAProj-MRv3BNMV"
+}
