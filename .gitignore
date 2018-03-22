@@ -1,4 +1,4 @@
 config.ini
-output.html
+*.html
 .DS_Store
 /.vscode/
