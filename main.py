@@ -5,6 +5,7 @@ import configparser
 import os, time, datetime
 from math import floor
 from session import getData
+from parse import parseScheduleView
 
 #Bring in config file
 config = configparser.ConfigParser()
@@ -24,3 +25,5 @@ else:
     print("Using cached version -- " + str(floor(last_time)) + " mins old.")
 
 #print(last_time)
+scheduledata = parseScheduleView()
+print(scheduledata)
