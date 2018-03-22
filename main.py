@@ -8,8 +8,8 @@ from math import floor
 config = configparser.ConfigParser()
 config.read('config.ini')
 
-WEB_PATH = "https://wmtscheduler.faa.gov/WMT_Login/"
-POST_PATH = "https://wmtscheduler.faa.gov/WMT_Login/default.aspx"
+WEB_PATH = config['PATHS']['LoginForm']
+POST_PATH = config['PATHS']['LoginPost']
 s = requests.session()
 
 login = s.get(WEB_PATH)
@@ -26,8 +26,9 @@ file_mod_time = os.stat("output.html").st_mtime
 last_time = (time.time() - file_mod_time) / 60
 
 if last_time > int(config['GENERAL']['CacheTime']):
-    response = s.post(POST_PATH, data=form)
     print("Getting Data")
+    
+    response = s.post(POST_PATH, data=form)
 
     response_cache = open("output.html", "w")
     response_cache.writelines(response.text)
