@@ -2,8 +2,6 @@ import requests
 from bs4 import BeautifulSoup
 import lxml
 import configparser
-import os, time, datetime
-from math import floor
 
 #bring in config in global scope
 config = configparser.ConfigParser()
@@ -22,9 +20,8 @@ def getData(session):
     response_cache.close()
 
     #dump schedule view
-    #payload = {'Action': config['PATHS']['ScheduleView']}
-    # print(config['PATHS']['WMTroot'] + "?Action=" + config['PATHS']['ScheduleView'])
-    response = session.get(config['PATHS']['WMTroot'] + "?Action=" + config['PATHS']['ScheduleView'])
+    path = config['PATHS']['WMTroot'] + "?Action=" + config['PATHS']['ScheduleView']
+    response = session.get(path)
     sched_view = open("scheduleview.html", "w")
     sched_view.writelines(response.text)
 
