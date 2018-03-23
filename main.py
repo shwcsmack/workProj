@@ -1,6 +1,4 @@
 import requests
-from bs4 import BeautifulSoup
-import lxml
 import configparser
 import os, time, datetime
 from math import floor
@@ -20,10 +18,8 @@ if os.path.isfile("worksheet.html"):
     last_time = (time.time() - file_mod_time) / 60
 else:
     last_time = 9999999
+
 #check how old the current cache of files is
-
-
-#last_time = 450
 if last_time > int(config['GENERAL']['CacheTime']):
     getData(s)
 else:
