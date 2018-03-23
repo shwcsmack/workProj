@@ -1,6 +1,7 @@
 from bs4 import BeautifulSoup
 import lxml
 import re
+import json
 
 def getDays(data_in):
     days = []
@@ -35,64 +36,6 @@ def parseStrengthRow(row):
             data['shifts'].append(text)
     return data
 
-def parseScheduleView():
-    dataout = ""
-
-    #get html
-    with open('scheduleview.html') as scheduleHTML:
-        soup = BeautifulSoup(scheduleHTML, "lxml")
-    
-    #grab the container table that wraps all the data we want
-    table = soup.find("div", "background").find_all("table")[4]
-    #grab the outer data since were in table hell
-    outerdata = table.contents[1].contents[3]
-    #find the two tables that have the data we want
-    datatables = outerdata.find_all("table")
-    #find the container table that has the dropdowns
-    dropdownsContainer = datatables[1]
-    #find the container table that has the actual data table
-    dataContainer = datatables[2].find("div").table
-
-    #Get area and pay period
-    selectedOptionsHTML = dropdownsContainer.find_all(selected = "selected")
-    area = selectedOptionsHTML[1].string
-    payperiod = selectedOptionsHTML[0].string
-
-    #Get the rows and loop
-    dataTableRows = dataContainer.find_all("tr")
-
-    #Grab current days and links to worksheet before we loop
-    days = getDays(dataTableRows)
-
-    #set up our schedule object
-    schedule = Schedule()
-    schedule.set_days(days)
-    schedule.area = area
-    schedule.pay_period = payperiod
-    schedule.print()
-
-
-    #loop other rows to fill out staff dict
-    for row in dataTableRows:
-        cells = row.find_all("td")
-        
-        #find out what is in the row we are working on
-        if cells:  
-            first_cell = cells[0]
-            #find cell that has a div with just text
-            if first_cell.div and len(first_cell.div.contents) == 1:
-                inner_string = first_cell.div.contents[0]
-                #staff row
-                if re.search('\w{2} - \w+', inner_string):
-                    schedule.addEmployee(Employee.from_html(row))
-                #strength row
-                elif "\xa0" not in  inner_string and "Name" not in inner_string:
-                    schedule.addStrength(parseStrengthRow(row))
-    
-
-    
-    return dataout
-
 class Schedule:
 
     def __init__(self):
@@ -114,6 +57,9 @@ class Schedule:
     def addStrength(self, strength):
         if strength not in self.strengths:
             self.strengths.append(strength)
+
+    def toJSON(self):
+        return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
 
 class Employee:
 
@@ -155,6 +101,62 @@ class Employee:
     def print(self):
         print(self.name + " (" + self.initials + ")")
 
+    def toJSON(self):
+        return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
 
+
+def parseScheduleView():
+    #get html
+    with open('scheduleview.html') as scheduleHTML:
+        soup = BeautifulSoup(scheduleHTML, "lxml")
+    
+    #grab the container table that wraps all the data we want
+    table = soup.find("div", "background").find_all("table")[4]
+    #grab the outer data since were in table hell
+    outerdata = table.contents[1].contents[3]
+    #find the two tables that have the data we want
+    datatables = outerdata.find_all("table")
+    #find the container table that has the dropdowns
+    dropdownsContainer = datatables[1]
+    #find the container table that has the actual data table
+    dataContainer = datatables[2].find("div").table
+
+    #Get area and pay period
+    selectedOptionsHTML = dropdownsContainer.find_all(selected = "selected")
+    area = selectedOptionsHTML[1].string
+    payperiod = selectedOptionsHTML[0].string
+
+    #Get the rows and loop
+    dataTableRows = dataContainer.find_all("tr")
+
+    #Grab current days and links to worksheet before we loop
+    days = getDays(dataTableRows)
+
+    #set up our schedule object
+    schedule = Schedule()
+    schedule.set_days(days)
+    schedule.area = area
+    schedule.pay_period = payperiod
+
+    #loop other rows to fill out staff dict
+    for row in dataTableRows:
+        cells = row.find_all("td")
+        
+        #find out what is in the row we are working on
+        if cells:  
+            first_cell = cells[0]
+            #find cell that has a div with just text
+            if first_cell.div and len(first_cell.div.contents) == 1:
+                inner_string = first_cell.div.contents[0]
+                #staff row
+                if re.search('\w{2} - \w+', inner_string):
+                    schedule.addEmployee(Employee.from_html(row))
+                #strength row
+                elif "\xa0" not in  inner_string and "Name" not in inner_string:
+                    schedule.addStrength(parseStrengthRow(row))
+    
+    return schedule.toJSON()
 
 parseScheduleView()
+with open("schedule.json", "w") as json_dump:
+    json_dump.writelines(parseScheduleView())

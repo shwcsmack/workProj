@@ -3,3 +3,4 @@ config.ini
 *.md
 .DS_Store
 .vscode/
+*.json
