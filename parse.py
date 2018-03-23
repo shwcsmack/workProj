@@ -18,6 +18,23 @@ def getDays(data_in):
             days.append(day_obj)
     return days
 
+def parseStrengthRow(row):
+    data = {"name": "", "shifts": []}
+
+    cells = row.find_all("td")
+    for cell in cells:
+        #get the text
+        text = cell.div.contents[0].strip()
+        #change blank cells to zero
+        if not text:
+            text = "0"
+        
+        if re.search('\D+', text):
+            data['name'] = text
+        elif re.search('\d', text):
+            data['shifts'].append(text)
+    return data
+
 def parseScheduleView():
     dataout = ""
 
@@ -40,69 +57,40 @@ def parseScheduleView():
     selectedOptionsHTML = dropdownsContainer.find_all(selected = "selected")
     area = selectedOptionsHTML[1].string
     payperiod = selectedOptionsHTML[0].string
-    print("Currently looking at: " + area + " and pay period: " + payperiod)
 
     #Get the rows and loop
     dataTableRows = dataContainer.find_all("tr")
 
-    #Grab current days and link to worksheet before we loop
+    #Grab current days and links to worksheet before we loop
     days = getDays(dataTableRows)
-    # print(days)
+
+    #set up our schedule object
+    schedule = Schedule()
+    schedule.set_days(days)
+    schedule.area = area
+    schedule.pay_period = payperiod
+    schedule.print()
 
 
-
+    #loop other rows to fill out staff dict
     for row in dataTableRows:
-        #find cells and loop
         cells = row.find_all("td")
-        if not cells:
-            # print("No cells?")
-            continue
-        elif not cells[0].div:
-            #Blank row
-            # print("no div")
-            continue
-        #get list of days
-        elif "Name" in cells[0].div.contents[0]:
-            # print(cells[0].div.contents[0])
-            continue
-        else:
-            # print("no name")
-            continue
+        
+        #find out what is in the row we are working on
+        if cells:  
+            first_cell = cells[0]
+            #find cell that has a div with just text
+            if first_cell.div and len(first_cell.div.contents) == 1:
+                inner_string = first_cell.div.contents[0]
+                #staff row
+                if re.search('\w{2} - \w+', inner_string):
+                    schedule.addEmployee(Employee.from_html(row))
+                #strength row
+                elif "\xa0" not in  inner_string and "Name" not in inner_string:
+                    schedule.addStrength(parseStrengthRow(row))
+    
 
-        for cell in cells:
-            if cell.div:
-                if cell.div.div:
-                    #should be a cell with a shift in it inside an anchor tag
-                    if cell.div.div.a:
-                        #Shift [T0700]
-                        # print(cell.div.div.a.contents[4].strip())
-                        continue
-                    #this should be a leave cell
-                    else:
-                        #Leave [LV]
-                        # print(cell.div.div.string)
-                        continue
-                elif len(cell.div.contents) == 1:
-                    if re.search('\w{2} - \w+', cell.div.string):
-                        #Name [FF - Stewart]
-                        #print(cell.div.string)
-                        continue
-                    else:
-                        #some other table data, come here if you want more data
-                        continue
-                #else:
-                    #either a day or a help window link
-                    #print("Day or Help")
-                    #print(cell.div.contents)
-            #else:
-                #blank cell
-                #print("blank cell")
     
-    
-    
-    
-    #loop through staff
-
     return dataout
 
 class Schedule:
@@ -111,11 +99,62 @@ class Schedule:
         self.pay_period = ""
         self.area = ""
         self.employees = []
+        self.days = []
+        self.strengths = []
+
+    def set_days(self, days):
+        self.days = days
+    
+    def print(self):
+        print("Currently looking at: " + self.area + " and pay period: " + self.pay_period)
+
+    def addEmployee(self, employee):
+        self.employees.append(employee)
+
+    def addStrength(self, strength):
+        if strength not in self.strengths:
+            self.strengths.append(strength)
 
 class Employee:
 
     def __init__(self):
         self.initials = ""
         self.name = ""
-        self.schedule = {}
+        self.schedule = []  #shift: T1400, link:somelink.asp
+
+    @classmethod
+    def from_html(cls, html):
+        employee = Employee()
+
+        #find cells and loop
+        cells = html.find_all("td")
+        for cell in cells:
+            #all the cells have a div inside so just jump to that
+            cell = cell.div
+
+            #cells with another div are the inner data
+            if cell.div:
+                if cell.div.a:
+                    #Shift [T0700]
+                    shift = cell.div.a.contents[4].strip()
+                    link = cell.div.a.get('href')
+                    employee.schedule.append({"shift": shift, "link": link})
+                #this should be a leave cell
+                else:
+                    #Leave [LV]
+                    employee.schedule.append({"shift": cell.div.string, "link": ""})
+            else:
+                parts = re.search('([A-Z]{2}) - ([\w ]+)' , cell.contents[0].strip())
+                initials = parts[1]
+                name = parts[2]
+                employee.name = name
+                employee.initials = initials
+
+        return employee
+
+    def print(self):
+        print(self.name + " (" + self.initials + ")")
+
+
+
 parseScheduleView()
