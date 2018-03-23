@@ -2,3 +2,4 @@ config.ini
 *.html
 *.md
 .DS_Store
+.vscode/
