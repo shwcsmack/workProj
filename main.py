@@ -4,6 +4,8 @@ import os, time, datetime
 from math import floor
 from session import getData
 from parse import parseScheduleView
+from pymongo import MongoClient
+import json
 
 #Bring in config file
 config = configparser.ConfigParser()
@@ -25,6 +27,25 @@ if last_time > int(config['GENERAL']['CacheTime']):
 else:
     print("Using cached version -- " + str(floor(last_time)) + " mins old.")
 
-#print(last_time)
+#convert the schedule view into JSON for exporting to DB
 scheduledata = parseScheduleView()
-print(scheduledata)
+
+#connect to db
+mongourl = 'mongodb://%s:%s@%s'% (config['CREDS']['dbuser'], config['CREDS']['dbpass'], config['PATHS']['dbpath'])
+client = MongoClient(mongourl)
+db = client.workproj    #set db
+
+#clean db
+db.schedules.drop()
+
+#use schedules collection
+schedules = db.schedules 
+
+#load in json from file and convert to a python obj
+data = {}
+with open("schedule.json") as jsonfile:
+    data = json.load(jsonfile)
+    
+#run query
+result = schedules.insert_one(data)
+print('Inserted: {0}'.format(result.inserted_id))
