@@ -47,6 +47,11 @@ class Schedule:
 
     def set_days(self, days):
         self.days = days
+
+    def set_info(self, area, pp, days):
+        self.area = area
+        self.pay_period = pp
+        self.set_days(days)
     
     def print(self):
         print("Currently looking at: " + self.area + " and pay period: " + self.pay_period)
@@ -126,17 +131,12 @@ def parseScheduleView():
     area = selectedOptionsHTML[1].string
     payperiod = selectedOptionsHTML[0].string
 
-    #Get the rows and loop
+    #Get the rows 
     dataTableRows = dataContainer.find_all("tr")
-
-    #Grab current days and links to worksheet before we loop
-    days = getDays(dataTableRows)
-
+    
     #set up our schedule object
     schedule = Schedule()
-    schedule.set_days(days)
-    schedule.area = area
-    schedule.pay_period = payperiod
+    schedule.set_info(area, payperiod, getDays(dataTableRows))
 
     #loop other rows to fill out staff dict
     for row in dataTableRows:
@@ -157,6 +157,5 @@ def parseScheduleView():
     
     return schedule.toJSON()
 
-parseScheduleView()
 with open("schedule.json", "w") as json_dump:
     json_dump.writelines(parseScheduleView())
